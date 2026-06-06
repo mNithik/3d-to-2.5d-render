@@ -1,4 +1,4 @@
-/** 2:1 isometric grid â€” matches phaser-demo (1 unit = 1 screen pixel). */
+/** 2:1 isometric diamond grid — matches Bodega Blitz bake anchor. */
 import { GRID_H, GRID_W } from './map';
 
 export { GRID_H, GRID_W };
@@ -13,24 +13,24 @@ export function gridToScreen(gx: number, gy: number): { x: number; y: number } {
   };
 }
 
-/** Bottom vertex of the iso diamond â€” foot anchor for buildings, props, players. */
+/** Bottom vertex of the iso diamond — foot anchor for buildings, props, players. */
 export function gridToGround(gx: number, gy: number): { x: number; y: number } {
   const c = gridToScreen(gx, gy);
   return { x: c.x, y: c.y + TILE_H / 2 };
 }
 
-/**
- * Phaser screen px â†’ Three.js board coords.
- * Negate Y so board Y-up matches screen-up; camera looks down +Z.
- */
-export function screenToBoard(sx: number, sy: number, depth = 0): [number, number, number] {
-  return [sx, -sy, depth * 0.01];
+/** Painter depth: higher draws on top. Use gx + gy, not row-major. */
+export function isoDepth(gx: number, gy: number, offset = 0): number {
+  return gx + gy + offset;
 }
 
-/** Matches phaser-demo tileDepth â€” diagonal row sort with gx tie-break. */
-export function isoDepth(gx: number, gy: number, offset = 0): number {
-  return (gx + gy) * GRID_W + gx + offset;
-}
+/** Cardinal grid steps — one axis per key (no iso angle). */
+export const GRID_WANDER_DIRS: ReadonlyArray<{ dx: number; dy: number }> = [
+  { dx: 0, dy: -1 },
+  { dx: 0, dy: 1 },
+  { dx: -1, dy: 0 },
+  { dx: 1, dy: 0 },
+];
 
 export function isoMapBounds(gridW = GRID_W, gridH = GRID_H) {
   const minX = (0 - (gridH - 1)) * (TILE_W / 2) - TILE_W / 2;
@@ -47,17 +47,4 @@ export function isoMapBounds(gridW = GRID_W, gridH = GRID_H) {
     centerX: (minX + maxX) / 2,
     centerY: (minY + maxY) / 2,
   };
-}
-
-export function fitMapZoom(viewportW: number, viewportH: number, padding = 0.9): number {
-  const b = isoMapBounds();
-  return Math.min(viewportW / b.width, viewportH / b.height) * padding;
-}
-
-export function boardYToScreen(by: number): number {
-  return -by;
-}
-
-export function screenYToBoard(sy: number): number {
-  return -sy;
 }

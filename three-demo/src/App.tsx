@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { IsoBoard } from './board/IsoBoard';
 import { eventBus } from './EventBus';
-import { useKeyboard } from './hooks/useKeyboard';
 import { useLocalSimulation, type ViewMode } from './hooks/useLocalSimulation';
 import './App.css';
 
@@ -14,19 +13,18 @@ const TABS: { id: ViewMode; label: string }[] = [
 ];
 
 export function App() {
-  const [view, setView] = useState<ViewMode>('spectator');
+  const [view, setView] = useState<ViewMode>('p1');
   const [driving, setDriving] = useState(0);
   const [leadPx, setLeadPx] = useState(64);
   const [smooth, setSmooth] = useState(0.09);
   const [wander, setWander] = useState(true);
-  const [lastClick, setLastClick] = useState('�');
+  const [lastClick, setLastClick] = useState('—');
 
-  const { readDir } = useKeyboard();
   const { renderState, players } = useLocalSimulation(view, driving, {
     leadPx,
     smooth,
     wander,
-  }, readDir);
+  });
 
   useEffect(() => {
     eventBus.emitRenderState(renderState);
@@ -35,7 +33,6 @@ export function App() {
   useEffect(() => {
     return eventBus.onTileClick(({ x, y }) => {
       setLastClick(`(${x}, ${y})`);
-      // Future: conn.reducers.move_player({ target_x: x, target_y: y })
     });
   }, []);
 
@@ -106,7 +103,7 @@ export function App() {
           </div>
           <div className="row">
             <span>driving</span>
-            <span className="val">{view === 'spectator' ? '�' : `P${driving + 1}`}</span>
+            <span className="val">{view === 'spectator' ? '—' : `P${driving + 1}`}</span>
           </div>
           <div className="row">
             <span>last click</span>
@@ -145,14 +142,15 @@ export function App() {
             </label>
           </div>
           <div className="keys">
-            move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows<br />
-            drive player <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>
+            move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows — one tile per press<br />
+            drive player <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><br />
+            pan <kbd>Space</kbd>+drag · MMB · RMB · scroll zoom
           </div>
         </div>
 
         <div className="note">
-          Same baked atlas as Phaser — 28×28, 5 districts, iso sprites.<br />
-          <b>RenderState</b> is the SpacetimeDB firewall (see <code>renderState.ts</code>).
+          Same baked atlas as Phaser — 28×28, 5 districts.<br />
+          Pan/zoom in player &amp; spectator views (like Phaser demo).
         </div>
       </div>
     </div>

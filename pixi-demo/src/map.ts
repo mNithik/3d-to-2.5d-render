@@ -1,7 +1,12 @@
 /**
  * Bodega Blitz 28×28 city — five districts, sparse curated buildings.
- * Shared layout with phaser-demo/src/map.ts.
+ *
+ * The map is split into 5 vertical sections (west → east). Each section has
+ * one bodega (game target) plus at most one or two landmark towers — not a
+ * building on every lot.
  */
+
+import type { AtlasFrame, BuildingFrame } from './spriteKeys';
 
 export const GRID_W = 28;
 export const GRID_H = 28;
@@ -18,6 +23,7 @@ export interface District {
   readonly maxGx: number;
 }
 
+/** Five vertical boroughs across the 28-wide grid. */
 export const DISTRICTS: ReadonlyArray<District> = [
   { id: 0, name: 'West End', minGx: 0, maxGx: 5 },
   { id: 1, name: 'Midtown', minGx: 6, maxGx: 10 },
@@ -26,17 +32,10 @@ export const DISTRICTS: ReadonlyArray<District> = [
   { id: 4, name: 'Harbor', minGx: 22, maxGx: 27 },
 ];
 
-export type BuildingFrame =
-  | 'tile_bodega'
-  | 'tile_building_medium'
-  | 'tile_building_large';
-
-export type FloorFrame = 'tile_street' | 'tile_sidewalk';
-
-export type PropFrame =
-  | 'prop_bollard'
-  | 'prop_manhole'
-  | 'pickup_spawn';
+export type FloorFrame = Extract<
+  AtlasFrame,
+  'tile_street' | 'tile_sidewalk' | 'tile_alley'
+>;
 
 export interface BuildingSlot {
   gx: number;
@@ -45,26 +44,37 @@ export interface BuildingSlot {
   section: number;
 }
 
+export type PropFrame = Extract<
+  AtlasFrame,
+  'prop_bollard' | 'prop_manhole' | 'pickup_spawn'
+>;
+
 export interface PropSlot {
   gx: number;
   gy: number;
   frame: PropFrame;
 }
 
+/** Hand-placed buildings — one bodega + landmarks per section (11 total). */
 const BUILDING_PLACEMENTS: ReadonlyArray<{
   gx: number;
   gy: number;
   frame: BuildingFrame;
 }> = [
+  // §0 West End
   { gx: 3, gy: 12, frame: 'tile_bodega' },
   { gx: 4, gy: 18, frame: 'tile_building_medium' },
+  // §1 Midtown
   { gx: 8, gy: 8, frame: 'tile_bodega' },
   { gx: 9, gy: 23, frame: 'tile_building_large' },
+  // §2 Central (hub — extra landmark)
   { gx: 13, gy: 13, frame: 'tile_bodega' },
   { gx: 14, gy: 8, frame: 'tile_building_medium' },
   { gx: 15, gy: 23, frame: 'tile_building_large' },
+  // §3 East Side
   { gx: 18, gy: 8, frame: 'tile_bodega' },
   { gx: 19, gy: 18, frame: 'tile_building_medium' },
+  // §4 Harbor
   { gx: 23, gy: 13, frame: 'tile_bodega' },
   { gx: 24, gy: 8, frame: 'tile_building_large' },
 ];
@@ -73,6 +83,7 @@ const BUILDING_BY_CELL = new Map<string, BuildingFrame>(
   BUILDING_PLACEMENTS.map((b) => [`${b.gx},${b.gy}`, b.frame]),
 );
 
+/** One plaza fountain per section — off roads, not on building cells. */
 const PICKUP_PLACEMENTS: ReadonlyArray<{ gx: number; gy: number }> = [
   { gx: 3, gy: 3 },
   { gx: 8, gy: 13 },
@@ -111,14 +122,6 @@ export function floorFrameAt(gx: number, gy: number): FloorFrame {
   return 'tile_sidewalk';
 }
 
-export function floorCells(): ReadonlyArray<{ gx: number; gy: number }> {
-  const cells: { gx: number; gy: number }[] = [];
-  for (let gy = 0; gy < GRID_H; gy++) {
-    for (let gx = 0; gx < GRID_W; gx++) cells.push({ gx, gy });
-  }
-  return cells;
-}
-
 export function buildingAt(gx: number, gy: number): BuildingFrame | null {
   if (isRoadCell(gx, gy)) return null;
   return BUILDING_BY_CELL.get(`${gx},${gy}`) ?? null;
@@ -131,6 +134,14 @@ export function isTreeCell(gx: number, gy: number): boolean {
   if (buildingAt(gx, gy) !== null) return false;
   const s = sectionAt(gx, gy);
   return (gx * 3 + gy * 5 + s * 2) % 11 === 0;
+}
+
+export function floorCells(): ReadonlyArray<{ gx: number; gy: number }> {
+  const cells: { gx: number; gy: number }[] = [];
+  for (let gy = 0; gy < GRID_H; gy++) {
+    for (let gx = 0; gx < GRID_W; gx++) cells.push({ gx, gy });
+  }
+  return cells;
 }
 
 export function buildingSlots(): BuildingSlot[] {

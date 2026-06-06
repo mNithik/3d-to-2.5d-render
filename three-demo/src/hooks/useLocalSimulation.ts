@@ -3,6 +3,7 @@ import { isOccupiedByPlayer, isWalkable } from '../collision';
 import { gridToGround, gridToScreen, GRID_H, GRID_W } from '../iso';
 import { buildDemoRenderState } from '../projectRenderState';
 import type { RenderState, RenderToken } from '../renderState';
+import { useStepInput } from './useStepInput';
 
 export type ViewMode = 'p1' | 'p2' | 'p3' | 'split' | 'spectator';
 
@@ -31,7 +32,6 @@ export interface SimOptions {
 const STEP_MS = 150;
 const WANDER_MS = 900;
 
-/** Cardinal grid steps — one axis per keypress. */
 export const GRID_WANDER_DIRS: ReadonlyArray<{ dx: number; dy: number }> = [
   { dx: 0, dy: -1 },
   { dx: 0, dy: 1 },
@@ -98,8 +98,8 @@ export function useLocalSimulation(
   view: ViewMode,
   driving: number,
   opts: SimOptions,
-  readDir: () => { dx: number; dy: number },
 ) {
+  const { takeStepIfQueued } = useStepInput();
   const playersRef = useRef<SimPlayer[]>(createPlayers());
   const [renderState, setRenderState] = useState<RenderState>(() =>
     buildDemoRenderState(toTokens(playersRef.current)),
@@ -118,7 +118,11 @@ export function useLocalSimulation(
       list.forEach((p, i) => {
         p.stepCool -= dt;
         if (view !== 'spectator' && i === driving) {
-          const { dx, dy } = readDir();
+          const canStep =
+            Math.round(p.px) === p.gx &&
+            Math.round(p.py) === p.gy &&
+            p.stepCool <= 0;
+          const { dx, dy } = takeStepIfQueued(canStep);
           tryStep(p, dx, dy, list, i);
         } else if (opts.wander) {
           p.wCool -= dt;
@@ -127,7 +131,8 @@ export function useLocalSimulation(
             Math.round(p.px) === p.gx &&
             Math.round(p.py) === p.gy
           ) {
-            const d = GRID_WANDER_DIRS[Math.floor(Math.random() * GRID_WANDER_DIRS.length)]!;
+            const d =
+              GRID_WANDER_DIRS[Math.floor(Math.random() * GRID_WANDER_DIRS.length)]!;
             tryStep(p, d.dx, d.dy, list, i);
             p.wCool = WANDER_MS + Math.random() * 600;
           }
@@ -158,7 +163,7 @@ export function useLocalSimulation(
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [view, driving, opts.leadPx, opts.smooth, opts.wander, readDir]);
+  }, [view, driving, opts.leadPx, opts.smooth, opts.wander, takeStepIfQueued]);
 
   return { renderState, players };
 }

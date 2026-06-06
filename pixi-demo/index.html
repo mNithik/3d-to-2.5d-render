@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bodega Blitz — MegaKit City (PixiJS)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --asphalt: #14161c;
+        --asphalt2: #1c2029;
+        --bodega: #f5c518;
+        --ink: #e8eaef;
+        --dim: #7c8499;
+        --line: #2c3340;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        background: radial-gradient(1200px 600px at 70% -10%, #20242f 0%, transparent 60%),
+          var(--asphalt);
+        color: var(--ink);
+        font-family: 'JetBrains Mono', monospace;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 {
+        font-family: 'Silkscreen', monospace;
+        font-size: 17px;
+        letter-spacing: 1px;
+        color: var(--bodega);
+        text-shadow: 0 0 18px rgba(245, 197, 24, 0.25);
+      }
+      header .sub {
+        font-size: 11px;
+        color: var(--dim);
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        padding: 10px 18px;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .tab {
+        font-family: 'Silkscreen', monospace;
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        background: var(--asphalt2);
+        color: var(--dim);
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        padding: 7px 12px;
+        cursor: pointer;
+        transition: 0.12s;
+      }
+      .tab:hover {
+        color: var(--ink);
+      }
+      .tab.on {
+        color: #14161c;
+        background: var(--bodega);
+        border-color: var(--bodega);
+      }
+      .stage {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+      }
+      #game-container {
+        width: 100%;
+        height: 100%;
+      }
+      #game-container canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+      }
+      .panel {
+        position: absolute;
+        bottom: 14px;
+        left: 14px;
+        background: rgba(20, 22, 28, 0.85);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px 14px;
+        min-width: 230px;
+        backdrop-filter: blur(6px);
+        font-size: 12px;
+        z-index: 5;
+        pointer-events: auto;
+      }
+      .panel .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 8px 0;
+      }
+      .panel label {
+        color: var(--dim);
+      }
+      .panel .val {
+        color: var(--bodega);
+        font-weight: 600;
+        min-width: 42px;
+        text-align: right;
+      }
+      input[type='range'] {
+        accent-color: var(--bodega);
+        width: 110px;
+      }
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: var(--ink);
+        user-select: none;
+      }
+      .toggle input {
+        accent-color: var(--bodega);
+        width: 15px;
+        height: 15px;
+      }
+      .keys {
+        margin-top: 9px;
+        padding-top: 9px;
+        border-top: 1px solid var(--line);
+        color: var(--dim);
+        line-height: 1.7;
+      }
+      .keys kbd {
+        background: var(--asphalt2);
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        padding: 1px 6px;
+        color: var(--ink);
+        font-family: 'Silkscreen', monospace;
+        font-size: 10px;
+      }
+      .note {
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        max-width: 280px;
+        font-size: 11px;
+        color: var(--dim);
+        text-align: right;
+        line-height: 1.6;
+        background: rgba(20, 22, 28, 0.6);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        z-index: 5;
+        pointer-events: none;
+      }
+      .note b {
+        color: var(--bodega);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>BODEGA BLITZ</h1>
+      <span class="sub"
+        >PixiJS + baked iso atlas · 28×28 · per-player cameras · spectator · full sprite control</span
+      >
+    </header>
+
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-v="p1">PLAYER 1</button>
+      <button class="tab" data-v="p2">PLAYER 2</button>
+      <button class="tab" data-v="p3">PLAYER 3</button>
+      <button class="tab" data-v="split">SPLIT (ALL CAMS)</button>
+      <button class="tab" data-v="spectator">SPECTATOR</button>
+    </div>
+
+    <div class="stage">
+      <div id="game-container"></div>
+
+      <div class="panel">
+        <div class="row"><span>view</span><span class="val" id="viewVal">P1</span></div>
+        <div class="row"><span>driving</span><span class="val" id="driveVal">P1</span></div>
+        <div class="row">
+          <label>lead distance</label>
+          <input type="range" id="lead" min="0" max="160" value="64" />
+          <span class="val" id="leadVal">64</span>
+        </div>
+        <div class="row">
+          <label>follow smooth</label>
+          <input type="range" id="smooth" min="2" max="20" value="9" />
+          <span class="val" id="smoothVal">.09</span>
+        </div>
+        <div class="row">
+          <span class="toggle">
+            <input type="checkbox" id="wander" checked />
+            <label for="wander" style="color: var(--ink)">others auto-walk</label>
+          </span>
+        </div>
+        <div class="keys">
+          move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> — one tile per press<br />
+          pan hold <kbd>Space</kbd> + drag · or right/MMB drag · scroll zoom<br />
+          drive player <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>
+        </div>
+      </div>
+
+      <div class="note">
+        Same baked atlas as Phaser — Pixi gives direct access to filters, shaders, and sprite graphs.<br />
+        Pan/zoom in player &amp; spectator views.
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

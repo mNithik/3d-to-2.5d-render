@@ -1,9 +1,12 @@
 /** Baked iso atlas — same sprites as phaser-demo (bodega-atlas.png). */
 
+import { TILE_W } from './iso';
+
 export const ATLAS_PATH = '/assets/bodega-atlas.png';
 export const ATLAS_JSON = '/assets/bodega-atlas.json';
 
 export const SPRITE_ORIGIN = { x: 0.5, y: 0.85 } as const;
+export const FLOOR_ORIGIN = { x: 0.5, y: 0.85 } as const;
 export const FLOOR_TILE_SCALE = 0.8;
 
 export type AtlasFrame =
@@ -36,6 +39,11 @@ export function buildingWidthRatio(frame: AtlasFrame): number {
   return 1;
 }
 
+/** Scale atlas frame width to exactly one grid cell (64px) — mirrors phaser worldSprite. */
+export function scaleToCellWidth(frameWidth: number, frame: AtlasFrame): number {
+  return (TILE_W * buildingWidthRatio(frame)) / frameWidth;
+}
+
 export const TREE_SCALE = 1.25;
 export const PROP_SCALE = 0.8;
 export const PICKUP_SCALE = 1.2;
@@ -58,15 +66,9 @@ export interface AtlasData {
   meta: { size: { w: number; h: number } };
 }
 
-/** Pixel width on screen after Phaser-style scale (one cell = 64px wide). */
-export function spritePixelWidth(frame: AtlasFrame, scaleMul = 1): number {
-  if (frame === 'tile_street' || frame === 'tile_sidewalk') {
-    return 128 * FLOOR_TILE_SCALE;
-  }
-  return 64 * buildingWidthRatio(frame) * scaleMul;
-}
-
-export function propScaleMul(frame: Extract<AtlasFrame, 'tree' | 'prop_manhole' | 'pickup_spawn' | 'prop_bollard'>): number {
+export function propScaleMul(
+  frame: Extract<AtlasFrame, 'tree' | 'prop_manhole' | 'pickup_spawn' | 'prop_bollard'>,
+): number {
   if (frame === 'tree') return TREE_SCALE;
   if (frame === 'pickup_spawn') return PICKUP_SCALE;
   return PROP_SCALE;

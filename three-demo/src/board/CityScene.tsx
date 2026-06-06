@@ -1,4 +1,3 @@
-import type { RenderState } from '../renderState';
 import {
   buildingSlots,
   floorCells,
@@ -7,17 +6,20 @@ import {
   treeCells,
 } from '../map';
 import { propScaleMul, type AtlasFrame } from '../atlas';
+import { isoDepth } from '../iso';
 import { AtlasSprite } from './AtlasSprite';
 import { PlayerToken } from './PlayerToken';
 import { useAtlas } from './useAtlas';
 import { eventBus } from '../EventBus';
+import type { SimPlayer } from '../hooks/useLocalSimulation';
 
 interface Props {
-  renderState: RenderState;
-  drivingPlayerId?: number;
+  players: SimPlayer[];
+  driving: number;
+  view: 'p1' | 'p2' | 'p3' | 'split' | 'spectator';
 }
 
-export function CityScene({ renderState, drivingPlayerId }: Props) {
+export function CityScene({ players, driving, view }: Props) {
   const { texture, atlas, ready } = useAtlas();
 
   const onPick = (gx: number, gy: number) => {
@@ -27,11 +29,14 @@ export function CityScene({ renderState, drivingPlayerId }: Props) {
   if (!ready) return null;
 
   const floors = [...floorCells()].sort(
-    (a, b) => a.gx + a.gy - (b.gx + b.gy),
+    (a, b) => isoDepth(a.gx, a.gy, -0.5) - isoDepth(b.gx, b.gy, -0.5),
   );
   const buildings = [...buildingSlots()].sort(
-    (a, b) => a.gx + a.gy - (b.gx + b.gy),
+    (a, b) => isoDepth(a.gx, a.gy, 0.05) - isoDepth(b.gx, b.gy, 0.05),
   );
+
+  const drivingId =
+    view === 'spectator' ? undefined : players[driving]?.id;
 
   return (
     <group>
@@ -94,11 +99,11 @@ export function CityScene({ renderState, drivingPlayerId }: Props) {
         />
       ))}
 
-      {renderState.tokens.map((tok) => (
+      {players.map((p) => (
         <PlayerToken
-          key={tok.playerId}
-          token={tok}
-          driven={tok.playerId === drivingPlayerId}
+          key={p.id}
+          player={p}
+          driven={view !== 'spectator' && p.id === drivingId}
         />
       ))}
     </group>

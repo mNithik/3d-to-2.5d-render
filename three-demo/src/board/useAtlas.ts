@@ -13,8 +13,9 @@ export function useAtlas(): {
 
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.flipY = false;
   }, [texture]);
 
   useEffect(() => {
