@@ -1,0 +1,74 @@
+{
+  "sourcePack": {
+    "name": "Downtown City MegaKit",
+    "author": "Quaternius",
+    "license": "CC0 1.0",
+    "localZip": "_source/megakit.zip",
+    "extractedRoot": "_source/extracted"
+  },
+  "output": {
+    "size": {
+      "width": 128,
+      "height": 256
+    },
+    "format": "png-rgba-transparent",
+    "pathTemplate": "_source/renders/{frame_key}.png"
+  },
+  "frames": [
+    {
+      "frameKey": "tile_street",
+      "use": "Road or asphalt base tile",
+      "megakitCandidate": "Road/asphalt tile or street patch"
+    },
+    {
+      "frameKey": "tile_bodega",
+      "use": "Bodega storefront tile",
+      "megakitCandidate": "Storefront facade, shop door, or sign frontage"
+    },
+    {
+      "frameKey": "tile_alley",
+      "use": "Blocked alley tile",
+      "megakitCandidate": "Dark wall slice, blocked corner, or alley facade"
+    },
+    {
+      "frameKey": "pickup_cash",
+      "use": "Cash pickup",
+      "megakitCandidate": "Register, coin prop, or simple custom cash icon"
+    },
+    {
+      "frameKey": "pickup_coffee",
+      "use": "Coffee buff pickup",
+      "megakitCandidate": "Coffee cup custom render if no MegaKit match exists"
+    },
+    {
+      "frameKey": "pickup_shield",
+      "use": "Shield pickup",
+      "megakitCandidate": "Deli shutter, bag, or simple shield icon"
+    },
+    {
+      "frameKey": "fx_spill",
+      "use": "Spill overlay",
+      "megakitCandidate": "Ground decal or simple custom slick"
+    },
+    {
+      "frameKey": "fx_shield",
+      "use": "Shield overlay",
+      "megakitCandidate": "Glow decal or protected tile marker"
+    },
+    {
+      "frameKey": "fx_speed",
+      "use": "Speed or contested overlay",
+      "megakitCandidate": "Arrow decal or directional street marker"
+    },
+    {
+      "frameKey": "tile_pickup_spawn",
+      "use": "Optional pickup spawn marker",
+      "megakitCandidate": "Small floor decal"
+    },
+    {
+      "frameKey": "bodega_cat",
+      "use": "Optional mascot flavor",
+      "megakitCandidate": "Custom mascot render or omitted v1 flavor"
+    }
+  ]
+}

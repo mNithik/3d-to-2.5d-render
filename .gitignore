@@ -1,1 +1,5 @@
 spacetimedb-hack/
+
+_source/*.zip
+_source/extracted/
+_source/renders/
