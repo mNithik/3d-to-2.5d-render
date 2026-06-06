@@ -25,7 +25,7 @@ Do not use `source.zip` until its license is verified in writing.
 Copy rendered PNGs into the nested game repo:
 
 ```powershell
-Copy-Item _source\renders\*.png spacetimedb-hack\public\assets\_source\renders\
+.\_source\scripts\copy_renders.ps1
 ```
 
 After copying, rebuild the game atlas from inside `spacetimedb-hack/`:

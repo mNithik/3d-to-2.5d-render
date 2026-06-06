@@ -18,47 +18,56 @@
     {
       "frameKey": "tile_street",
       "use": "Road or asphalt base tile",
-      "megakitCandidate": "Road/asphalt tile or street patch"
+      "assetPath": "Exports/FBX (Unity)/Street_Asphalt_6x6.fbx",
+      "megakitCandidate": "Street_Asphalt_6x6.fbx"
     },
     {
       "frameKey": "tile_bodega",
       "use": "Bodega storefront tile",
-      "megakitCandidate": "Storefront facade, shop door, or sign frontage"
+      "assetPath": "Exports/FBX (Unity)/Building_Small_1.fbx",
+      "megakitCandidate": "Building_Small_1.fbx"
     },
     {
       "frameKey": "tile_alley",
       "use": "Blocked alley tile",
-      "megakitCandidate": "Dark wall slice, blocked corner, or alley facade"
+      "assetPath": "Exports/FBX (Unity)/Brick_Corner_Plain.fbx",
+      "megakitCandidate": "Brick_Corner_Plain.fbx"
     },
     {
       "frameKey": "pickup_cash",
       "use": "Cash pickup",
-      "megakitCandidate": "Register, coin prop, or simple custom cash icon"
+      "assetPath": "Exports/FBX (Unity)/Prop_ManholeCover.fbx",
+      "megakitCandidate": "Prop_ManholeCover.fbx"
     },
     {
       "frameKey": "pickup_coffee",
       "use": "Coffee buff pickup",
-      "megakitCandidate": "Coffee cup custom render if no MegaKit match exists"
+      "assetPath": "Exports/FBX (Unity)/Prop_Planter_Single.fbx",
+      "megakitCandidate": "Prop_Planter_Single.fbx"
     },
     {
       "frameKey": "pickup_shield",
       "use": "Shield pickup",
-      "megakitCandidate": "Deli shutter, bag, or simple shield icon"
+      "assetPath": "Exports/FBX (Unity)/Prop_Bollard.fbx",
+      "megakitCandidate": "Prop_Bollard.fbx"
     },
     {
       "frameKey": "fx_spill",
       "use": "Spill overlay",
-      "megakitCandidate": "Ground decal or simple custom slick"
+      "assetPath": "Exports/FBX (Unity)/Prop_Drain.fbx",
+      "megakitCandidate": "Prop_Drain.fbx"
     },
     {
       "frameKey": "fx_shield",
       "use": "Shield overlay",
-      "megakitCandidate": "Glow decal or protected tile marker"
+      "assetPath": "Exports/FBX (Unity)/Sidewalk_Planter.fbx",
+      "megakitCandidate": "Sidewalk_Planter.fbx"
     },
     {
       "frameKey": "fx_speed",
       "use": "Speed or contested overlay",
-      "megakitCandidate": "Arrow decal or directional street marker"
+      "assetPath": "Exports/FBX (Unity)/Decal_ArrowStraight.fbx",
+      "megakitCandidate": "Decal_ArrowStraight.fbx"
     },
     {
       "frameKey": "tile_pickup_spawn",
