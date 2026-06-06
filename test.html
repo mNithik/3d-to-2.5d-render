@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bodega Blitz — Multiplayer Cameras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#14161c; --asphalt2:#1c2029; --street:#2a2f3a; --street-edge:#363c49;
+    --bodega:#f5c518; --awning:#d23b3b; --awning-shade:#9e2a2a;
+    --ink:#e8eaef; --dim:#7c8499; --line:#2c3340;
+    --p1:#2dd4bf; --p2:#f472b6; --p3:#fbbf24;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 70% -10%, #20242f 0%, transparent 60%), var(--asphalt);
+    color:var(--ink); font-family:'JetBrains Mono',monospace;
+    display:flex; flex-direction:column; height:100vh; overflow:hidden;
+  }
+  header{display:flex; align-items:baseline; gap:14px; padding:12px 18px; border-bottom:1px solid var(--line)}
+  header h1{font-family:'Silkscreen',monospace; font-size:17px; letter-spacing:1px; color:var(--bodega); text-shadow:0 0 18px rgba(245,197,24,.25)}
+  header .sub{font-size:11px; color:var(--dim)}
+  .tabs{display:flex; gap:6px; padding:10px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .tab{
+    font-family:'Silkscreen',monospace; font-size:11px; letter-spacing:.5px;
+    background:var(--asphalt2); color:var(--dim); border:1px solid var(--line);
+    border-bottom-width:2px; border-radius:6px; padding:7px 12px; cursor:pointer; transition:.12s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.on{color:#14161c; background:var(--bodega); border-color:var(--bodega)}
+  .stage{position:relative; flex:1; min-height:0}
+  canvas{display:block; width:100%; height:100%; image-rendering:pixelated}
+  .panel{
+    position:absolute; bottom:14px; left:14px; background:rgba(20,22,28,.85);
+    border:1px solid var(--line); border-radius:8px; padding:12px 14px; min-width:230px;
+    backdrop-filter:blur(6px); font-size:12px; z-index:5;
+  }
+  .panel .row{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0}
+  .panel label{color:var(--dim)}
+  .panel .val{color:var(--bodega); font-weight:600; min-width:42px; text-align:right}
+  input[type=range]{accent-color:var(--bodega); width:110px}
+  .toggle{display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:var(--ink); user-select:none}
+  .toggle input{accent-color:var(--bodega); width:15px; height:15px}
+  .keys{margin-top:9px; padding-top:9px; border-top:1px solid var(--line); color:var(--dim); line-height:1.7}
+  .keys kbd{background:var(--asphalt2); border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); font-family:'Silkscreen',monospace; font-size:10px}
+  .note{position:absolute; bottom:14px; right:14px; max-width:230px; font-size:11px; color:var(--dim); text-align:right; line-height:1.6; background:rgba(20,22,28,.6); border:1px solid var(--line); border-radius:8px; padding:10px 12px; z-index:5}
+  .note b{color:var(--bodega)}
+</style>
+</head>
+<body>
+<header>
+  <h1>BODEGA BLITZ</h1>
+  <span class="sub">per-player cameras · split proof · spectator overview · baked iso angle fixed</span>
+</header>
+
+<div class="tabs" id="tabs">
+  <button class="tab" data-v="p1">PLAYER 1</button>
+  <button class="tab" data-v="p2">PLAYER 2</button>
+  <button class="tab" data-v="p3">PLAYER 3</button>
+  <button class="tab" data-v="split">SPLIT (ALL CAMS)</button>
+  <button class="tab" data-v="spectator">SPECTATOR</button>
+</div>
+
+<div class="stage">
+  <canvas id="c"></canvas>
+
+  <div class="panel">
+    <div class="row"><span>view</span><span class="val" id="viewVal">—</span></div>
+    <div class="row"><span>driving</span><span class="val" id="driveVal">—</span></div>
+    <div class="row"><label>lead distance</label><input type="range" id="lead" min="0" max="160" value="64"><span class="val" id="leadVal">64</span></div>
+    <div class="row"><label>follow smooth</label><input type="range" id="smooth" min="2" max="20" value="9"><span class="val" id="smoothVal">.09</span></div>
+    <div class="row"><span class="toggle"><input type="checkbox" id="wander" checked><label for="wander" style="color:var(--ink)">others auto-walk</label></span></div>
+    <div class="keys">
+      move <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows<br>
+      drive player <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>
+    </div>
+  </div>
+
+  <div class="note">
+    Spectator = zoomed-out <b>iso overview</b>, not a true top-down (that needs a separate bake).
+    Split renders all three cameras only to prove each tracks independently — ship <b>one cam per client</b>.
+  </div>
+</div>
+
+<script>
+const GRID_W=12, GRID_H=8, TILE_W=64, TILE_H=32;
+const cv=document.getElementById('c'), ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+
+const BODEGAS=new Set(['2,2','8,1','5,5']);
+const ALLEYS=new Set(['10,6','11,6']);
+const TREES=[[0,7],[11,7],[0,0],[11,0]];
+
+const iso=(gx,gy)=>({x:(gx-gy)*(TILE_W/2), y:(gx+gy)*(TILE_H/2)});
+const depth=(gx,gy)=>gy*GRID_W+gx;
+
+// map bounds for spectator fit
+const MINX=(0-(GRID_H-1))*(TILE_W/2)-TILE_W/2, MAXX=((GRID_W-1))*(TILE_W/2)+TILE_W/2;
+const MINY=-TILE_H/2-34, MAXY=((GRID_W-1)+(GRID_H-1))*(TILE_H/2)+TILE_H/2;
+const CONTENT_W=MAXX-MINX, CONTENT_H=MAXY-MINY;
+const MAP_CX=(MINX+MAXX)/2, MAP_CY=(MINY+MAXY)/2;
+
+const PLAYERS=[
+  {id:1,gx:2,gy:5,color:'#2dd4bf',shade:'#159e8c'},
+  {id:2,gx:8,gy:2,color:'#f472b6',shade:'#be3d8b'},
+  {id:3,gx:6,gy:6,color:'#fbbf24',shade:'#c98a0a'},
+].map(p=>{
+  const s=iso(p.gx,p.gy);
+  return {...p, px:p.gx, py:p.gy, fx:1, fy:0, lead:{x:0,y:0}, focus:{x:s.x,y:s.y}, stepCool:0, wCool:Math.random()*1200};
+});
+
+const opts={leadPx:64, smooth:0.09, wander:true};
+let view='p1', driving=0;
+const STEP_MS=150, WANDER_MS=900;
+
+// input
+const held={};
+addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
+  if(k==='1'){driving=0; if(view!=='split'&&view!=='spectator')setView('p1');}
+  if(k==='2'){driving=1; if(view!=='split'&&view!=='spectator')setView('p2');}
+  if(k==='3'){driving=2; if(view!=='split'&&view!=='spectator')setView('p3');}
+  held[k]=true; updateHud();
+});
+addEventListener('keyup',e=>{held[e.key.toLowerCase()]=false});
+
+function readDir(){
+  let dx=0,dy=0;
+  if(held['a']||held['arrowleft'])dx--; if(held['d']||held['arrowright'])dx++;
+  if(held['w']||held['arrowup'])dy--; if(held['s']||held['arrowdown'])dy++;
+  return{dx,dy};
+}
+function tryStep(p,dx,dy){
+  if(!(dx||dy))return;
+  if(Math.round(p.px)!==p.gx||Math.round(p.py)!==p.gy)return;
+  if(p.stepCool>0)return;
+  const nx=Math.max(0,Math.min(GRID_W-1,p.gx+dx)), ny=Math.max(0,Math.min(GRID_H-1,p.gy+dy));
+  if(nx!==p.gx||ny!==p.gy){p.gx=nx;p.gy=ny;p.stepCool=STEP_MS;}
+  p.fx=dx;p.fy=dy;
+}
+
+// controls
+$('lead').oninput=e=>{opts.leadPx=+e.target.value;$('leadVal').textContent=e.target.value};
+$('smooth').oninput=e=>{opts.smooth=(+e.target.value)/100;$('smoothVal').textContent=opts.smooth.toFixed(2).slice(1)};
+$('wander').onchange=e=>opts.wander=e.target.checked;
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab'); if(b)setView(b.dataset.v)});
+function setView(v){
+  view=v;
+  if(v==='p1')driving=0; if(v==='p2')driving=1; if(v==='p3')driving=2;
+  [...document.querySelectorAll('.tab')].forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  updateHud();
+}
+function updateHud(){
+  $('viewVal').textContent = view==='spectator'?'SPECTATOR':view==='split'?'SPLIT':'P'+(driving+1);
+  $('driveVal').textContent = view==='spectator'?'—':'P'+(driving+1);
+}
+
+// resize/DPR
+let W=0,H=0,DPR=1;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  const r=cv.getBoundingClientRect(); W=r.width; H=r.height;
+  cv.width=W*DPR; cv.height=H*DPR;
+}
+addEventListener('resize',resize); resize();
+
+// primitives
+function diamond(sx,sy,fill,edge){
+  ctx.beginPath();
+  ctx.moveTo(sx,sy-TILE_H/2); ctx.lineTo(sx+TILE_W/2,sy);
+  ctx.lineTo(sx,sy+TILE_H/2); ctx.lineTo(sx-TILE_W/2,sy); ctx.closePath();
+  ctx.fillStyle=fill; ctx.fill();
+  if(edge){ctx.strokeStyle=edge; ctx.lineWidth=1; ctx.stroke();}
+}
+function building(sx,sy,h){
+  const hw=TILE_W/2,hh=TILE_H/2;
+  ctx.beginPath(); ctx.moveTo(sx-hw,sy); ctx.lineTo(sx,sy+hh); ctx.lineTo(sx,sy+hh-h); ctx.lineTo(sx-hw,sy-h); ctx.closePath();
+  ctx.fillStyle='#9e2a2a'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(sx+hw,sy); ctx.lineTo(sx,sy+hh); ctx.lineTo(sx,sy+hh-h); ctx.lineTo(sx+hw,sy-h); ctx.closePath();
+  ctx.fillStyle='#d23b3b'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(sx,sy-hh-h); ctx.lineTo(sx+hw,sy-h); ctx.lineTo(sx,sy+hh-h); ctx.lineTo(sx-hw,sy-h); ctx.closePath();
+  ctx.fillStyle='#f5c518'; ctx.fill();
+}
+function tree(sx,sy){
+  ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(sx,sy+2,12,6,0,0,7); ctx.fill();
+  ctx.fillStyle='#6b4a2a'; ctx.fillRect(sx-2,sy-14,4,16);
+  ctx.fillStyle='#2c6b41'; ctx.beginPath(); ctx.arc(sx,sy-22,13,0,7); ctx.fill();
+  ctx.fillStyle='#3f8f5b'; ctx.beginPath(); ctx.arc(sx-3,sy-25,9,0,7); ctx.fill();
+}
+function token(sx,sy,p,isDriven){
+  if(isDriven){ ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(sx,sy+2,12,6,0,0,7); ctx.stroke(); }
+  ctx.fillStyle='rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(sx,sy+2,9,4.5,0,0,7); ctx.fill();
+  ctx.fillStyle=p.shade; ctx.fillRect(sx-6,sy-18,12,18);
+  ctx.fillStyle=p.color; ctx.fillRect(sx-6,sy-18,12,9);
+  ctx.fillStyle='#ffd9b3'; ctx.beginPath(); ctx.arc(sx,sy-22,5,0,7); ctx.fill();
+  if(p.fx||p.fy){
+    const n=iso(p.fx,p.fy), m=Math.hypot(n.x,n.y)||1;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(sx,sy-22); ctx.lineTo(sx+n.x/m*9,sy-22+n.y/m*9); ctx.stroke();
+  }
+}
+
+function drawWorld(){
+  const items=[];
+  for(let gy=0;gy<GRID_H;gy++)for(let gx=0;gx<GRID_W;gx++) items.push({k:'tile',gx,gy,d:depth(gx,gy)-0.5});
+  TREES.forEach(([gx,gy])=>items.push({k:'tree',gx,gy,d:depth(gx,gy)+0.2}));
+  PLAYERS.forEach((p,i)=>items.push({k:'player',p,i,gx:p.px,gy:p.py,d:depth(Math.round(p.px),Math.round(p.py))+0.1}));
+  items.sort((a,b)=>a.d-b.d);
+  for(const it of items){
+    const s=iso(it.gx,it.gy);
+    if(it.k==='tile'){
+      const key=it.gx+','+it.gy;
+      if(BODEGAS.has(key)){ diamond(s.x,s.y,'#2a2f3a','#363c49'); building(s.x,s.y,30); }
+      else if(ALLEYS.has(key)) diamond(s.x,s.y,'#171a20','#23272f');
+      else diamond(s.x,s.y,'#2a2f3a','#363c49');
+    } else if(it.k==='tree') tree(s.x,s.y);
+    else token(s.x,s.y,it.p, view!=='spectator' && it.i===driving);
+  }
+}
+
+function renderView(vp,fx,fy,zoom,label,labelColor,highlight){
+  ctx.save();
+  ctx.beginPath(); ctx.rect(vp.x,vp.y,vp.w,vp.h); ctx.clip();
+  ctx.fillStyle='#101218'; ctx.fillRect(vp.x,vp.y,vp.w,vp.h);
+  ctx.translate(vp.x+vp.w/2, vp.y+vp.h/2);
+  ctx.scale(zoom,zoom);
+  ctx.translate(-fx,-fy);
+  drawWorld();
+  ctx.restore();
+  // border + label (screen space)
+  ctx.lineWidth=highlight?3:1;
+  ctx.strokeStyle=highlight?labelColor:'#2c3340';
+  ctx.strokeRect(vp.x+0.5,vp.y+0.5,vp.w-1,vp.h-1);
+  if(label){
+    ctx.font="11px 'Silkscreen', monospace";
+    ctx.fillStyle=labelColor||'#e8eaef';
+    ctx.fillText(label, vp.x+10, vp.y+18);
+  }
+}
+
+function viewports(){
+  if(view!=='split') return null;
+  const cols = W>=760;
+  if(cols) return PLAYERS.map((p,i)=>({x:Math.floor(i*W/3),y:0,w:Math.ceil(W/3),h:H}));
+  return PLAYERS.map((p,i)=>({x:0,y:Math.floor(i*H/3),w:W,h:Math.ceil(H/3)}));
+}
+
+let last=performance.now();
+function frame(now){
+  const dt=now-last; last=now;
+  const drv=PLAYERS[driving];
+
+  PLAYERS.forEach((p,i)=>{
+    p.stepCool-=dt;
+    if(view!=='spectator' && i===driving){
+      const{dx,dy}=readDir(); tryStep(p,dx,dy);
+    } else if(opts.wander){
+      p.wCool-=dt;
+      if(p.wCool<=0 && Math.round(p.px)===p.gx && Math.round(p.py)===p.gy){
+        const d=[[1,0],[-1,0],[0,1],[0,-1]][Math.floor(Math.random()*4)];
+        tryStep(p,d[0],d[1]); p.wCool=WANDER_MS+Math.random()*600;
+      }
+    }
+    p.px+=(p.gx-p.px)*Math.min(1,dt/STEP_MS);
+    p.py+=(p.gy-p.py)*Math.min(1,dt/STEP_MS);
+    // lead + camera focus
+    const ps=iso(p.px,p.py);
+    let lx=0,ly=0;
+    if(p.fx||p.fy){ const d=iso(p.fx,p.fy),m=Math.hypot(d.x,d.y)||1; lx=d.x/m*opts.leadPx; ly=d.y/m*opts.leadPx; }
+    p.lead.x+=(lx-p.lead.x)*opts.smooth; p.lead.y+=(ly-p.lead.y)*opts.smooth;
+    p.focus.x+=((ps.x+p.lead.x)-p.focus.x)*opts.smooth;
+    p.focus.y+=((ps.y+p.lead.y)-p.focus.y)*opts.smooth;
+  });
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  if(view==='spectator'){
+    const vp={x:0,y:0,w:W,h:H};
+    const z=Math.min(vp.w/CONTENT_W, vp.h/CONTENT_H)*0.9;
+    renderView(vp, MAP_CX, MAP_CY, z, 'SPECTATOR — FULL MAP', '#7c8499', false);
+  } else if(view==='split'){
+    const vps=viewports();
+    PLAYERS.forEach((p,i)=>{
+      renderView(vps[i], p.focus.x, p.focus.y, 0.85,
+        'P'+p.id+(i===driving?'  (you)':''), p.color, i===driving);
+    });
+  } else {
+    renderView({x:0,y:0,w:W,h:H}, drv.focus.x, drv.focus.y, 1,
+      'PLAYER '+drv.id+'  (you)', drv.color, false);
+  }
+  requestAnimationFrame(frame);
+}
+setView('p1');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

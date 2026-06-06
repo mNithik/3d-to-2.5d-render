@@ -1,0 +1,14 @@
+{
+  "width": 28,
+  "height": 28,
+  "sections": 5,
+  "districts": [
+    { "id": 0, "name": "West End", "minGx": 0, "maxGx": 5 },
+    { "id": 1, "name": "Midtown", "minGx": 6, "maxGx": 10 },
+    { "id": 2, "name": "Central", "minGx": 11, "maxGx": 16 },
+    { "id": 3, "name": "East Side", "minGx": 17, "maxGx": 21 },
+    { "id": 4, "name": "Harbor", "minGx": 22, "maxGx": 27 }
+  ],
+  "buildings": 11,
+  "bodegasPerSection": 1
+}

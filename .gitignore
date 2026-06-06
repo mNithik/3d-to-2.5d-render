@@ -1,0 +1,20 @@
+# Dependencies & builds
+node_modules/
+dist/
+*.local
+# Large / generated assets (keep locally)
+source.zip
+Downtown City MegaKit[Standard].zip
+assets-source/
+output/
+three-demo/public/models/
+# Debug / tooling
+.playwright-mcp/
+three-demo-check*.png
+three-demo-p1.png
+three-demo-spectator.png
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.env
